@@ -4,7 +4,6 @@ const ERRORS = {
   FOREIGN_KEY_VIOLATION: "23503",
 };
 
-/** Uses PostgreSQL error codes to send slightly better error messages */
 export default function handlePostgresErrors(err, req, res, next) {
   switch (err.code) {
     case ERRORS.INVALID_TYPE:
