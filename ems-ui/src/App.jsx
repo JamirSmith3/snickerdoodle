@@ -1,35 +1,76 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Routes, Route, NavLink, Navigate, useNavigate } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
+import EmployeesGrid from "./pages/EmployeesGrid";
+import EmployeeDetail from "./pages/EmployeeDetail";
+import EmployeeForm from "./pages/EmployeeForm";
+import Login from "./pages/Login";
+import { useAuth } from "./auth";
 
-function App() {
-  const [count, setCount] = useState(0)
-
+function Shell({ children }) {
+  const { signOut } = useAuth();
+  const nav = useNavigate();
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="app">
+      <aside className="sidebar">
+        <h3>Navigation</h3>
+        <nav className="nav">
+          <NavLink to="/employees" className={({isActive}) => isActive ? "active" : ""}>Employees</NavLink>
+          <NavLink to="/departments" className={({isActive}) => isActive ? "active" : ""}>Departments</NavLink>
+          <NavLink to="/profile" className={({isActive}) => isActive ? "active" : ""}>Profile</NavLink>
+        </nav>
+        <div style={{marginTop:"auto"}}>
+          <button className="btn ghost" onClick={()=>{signOut(); nav("/login")}}>Sign out</button>
+        </div>
+      </aside>
+
+      <div style={{display:"grid", gridTemplateRows:"66px 1fr"}}>
+        <div className="topbar">
+          <strong>Employee Manager</strong>
+        </div>
+        <div className="content">{children}</div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </div>
+  );
 }
 
-export default App
+export default function App(){
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+
+      <Route
+        path="/employees"
+        element={
+          <ProtectedRoute>
+            <Shell><EmployeesGrid /></Shell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/employees/new"
+        element={
+          <ProtectedRoute>
+            <Shell><EmployeeForm /></Shell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/employees/:id"
+        element={
+          <ProtectedRoute>
+            <Shell><EmployeeDetail /></Shell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/employees/:id/edit"
+        element={
+          <ProtectedRoute>
+            <Shell><EmployeeForm /></Shell>
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/employees" replace />} />
+    </Routes>
+  );
+}

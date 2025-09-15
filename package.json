@@ -18,7 +18,8 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "pg": "^8.14.1"
+    "pg": "^8.14.1",
+    "react-router-dom": "^7.9.1"
   },
   "engines": {
     "node": ">=22.0.0"

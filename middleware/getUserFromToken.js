@@ -1,3 +1,4 @@
+// getUserFromToken.js
 import { getUserById } from "#db/queries/users";
 import { verifyToken } from "#utils/jwt";
 
@@ -13,6 +14,6 @@ export default async function getUserFromToken(req, res, next) {
     next();
   } catch (e) {
     console.error(e);
-    res.status(401).send("Invalid token.");
+    res.status(401).json({ error: "Invalid token." });
   }
 }

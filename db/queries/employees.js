@@ -1,24 +1,44 @@
+// db/queries/employees.js
 import db from "#db/client";
 
-export async function listEmployees({ search = "", limit = 50, offset = 0 } = {}) {
+export async function listEmployees({ limit = 20, offset = 0, q = null, department_id = null, status = null } = {}) {
   const params = [];
-  let where = "";
-  if (search) {
-    params.push(`%${search}%`);
-    where = `WHERE (e.first_name || ' ' || e.last_name ILIKE $${params.length}
-             OR e.email ILIKE $${params.length})`;
+  const where = [];
+
+  if (q) {
+    params.push(`%${q}%`);
+    where.push(
+      `(e.first_name ILIKE $${params.length} OR e.last_name ILIKE $${params.length} OR e.email ILIKE $${params.length})`
+    );
   }
-  params.push(limit, offset);
+  if (department_id) {
+    params.push(Number(department_id));
+    where.push(`e.department_id = $${params.length}`);
+  }
+  if (status) {
+    params.push(String(status).toUpperCase());
+    where.push(`e.status = $${params.length}`);
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  // count
+  const countSql = `SELECT COUNT(*)::int AS count FROM employees e ${whereSql};`;
+  const { rows: [{ count }] } = await db.query(countSql, params);
+
+  // data
+  params.push(limit);
+  params.push(offset);
   const sql = `
     SELECT e.*, d.name AS department_name
     FROM employees e
     LEFT JOIN departments d ON d.id = e.department_id
-    ${where}
+    ${whereSql}
     ORDER BY e.last_name, e.first_name
-    LIMIT $${params.length-1} OFFSET $${params.length};
+    LIMIT $${params.length - 1} OFFSET $${params.length};
   `;
   const { rows } = await db.query(sql, params);
-  return rows;
+  return { rows, count };
 }
 
 export async function getEmployee(id) {
@@ -26,7 +46,8 @@ export async function getEmployee(id) {
     `SELECT e.*, d.name AS department_name
      FROM employees e
      LEFT JOIN departments d ON d.id = e.department_id
-     WHERE e.id = $1`, [id]
+     WHERE e.id = $1`,
+    [id]
   );
   return row;
 }
@@ -36,7 +57,7 @@ export async function createEmployee(payload) {
     "first_name","last_name","email","department_id","manager_id","role_title",
     "employment_type","status","location","hire_date","salary"
   ];
-  const values = cols.map((c,i)=> `$${i+1}`);
+  const values = cols.map((_, i) => `$${i + 1}`);
   const params = cols.map(c => payload[c] ?? null);
   const sql = `
     INSERT INTO employees (${cols.join(",")})
@@ -50,7 +71,7 @@ export async function createEmployee(payload) {
 export async function updateEmployee(id, patch) {
   const keys = Object.keys(patch);
   if (keys.length === 0) return getEmployee(id);
-  const sets = keys.map((k,i)=> `${k} = $${i+1}`);
+  const sets = keys.map((k, i) => `${k} = $${i + 1}`);
   const params = keys.map(k => patch[k]);
   params.push(id);
   const { rows: [row] } = await db.query(
