@@ -1,75 +1,91 @@
+// ems-ui/src/pages/EmployeeDetail.jsx
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { getEmployee } from "../api";
-import { useAuth } from "../auth";
 
 export default function EmployeeDetail() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { token, signOut } = useAuth();
-
   const [emp, setEmp] = useState(null);
-  const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
 
   useEffect(() => {
-    let cancelled = false;
+    let mounted = true;
     (async () => {
-      setErr(""); setLoading(true);
       try {
-        const data = await getEmployee(token, id);
-        if (!cancelled) setEmp(data);
+        const data = await getEmployee(id);
+        if (mounted) setEmp(data);
       } catch (e) {
-        if (!cancelled) setErr(e.message || "Failed to load employee.");
+        setErr(e.message || "Failed to load employee");
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
-  }, [id, token]);
+    return () => { mounted = false; }
+  }, [id]);
+
+  if (loading) return <div style={{ padding: 18 }}>Loading…</div>;
+  if (err) return <div style={{ padding: 18, color: "var(--bad)" }}>{err}</div>;
+  if (!emp) return <div style={{ padding: 18 }}>Not found.</div>;
+
+  const fullName = `${emp.first_name} ${emp.last_name}`;
+  const statusClass = emp.status === "ACTIVE" ? "ok" : "bad";
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-4">
-      <header className="flex items-center justify-between">
-        <div className="space-x-2">
-          <Link to="/employees" className="underline">← Back to list</Link>
-        </div>
-        <button onClick={signOut} className="border rounded px-3 py-1 hover:bg-gray-50">
-          Sign out
-        </button>
-      </header>
+    <div className="stack-16">
+      <div className="row-between">
+        <Link to="/employees" className="btn">
+          ← Back to list
+        </Link>
+        <div className={`badge ${statusClass} status-pill`}>{emp.status}</div>
+      </div>
 
-      {loading && <p>Loading…</p>}
-      {err && <p className="text-red-600">{err}</p>}
-      {!loading && !err && emp && (
-        <div className="rounded-xl border overflow-hidden">
-          <div className="p-4 border-b bg-gray-50">
-            <h1 className="text-xl font-semibold">
-              {emp.first_name} {emp.last_name}
-            </h1>
-            <p className="text-sm text-gray-600">{emp.role_title}</p>
-          </div>
-          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <Field label="Email" value={emp.email} />
-            <Field label="Department" value={emp.department_name ?? emp.department_id} />
-            <Field label="Location" value={emp.location ?? "-"} />
-            <Field label="Status" value={emp.status} />
-            <Field label="Employment Type" value={emp.employment_type} />
-            <Field label="Hire Date" value={emp.hire_date?.slice(0,10) ?? "-"} />
-            <Field label="Salary" value={emp.salary ? `$${Number(emp.salary).toLocaleString()}` : "-"} />
-            <Field label="Manager ID" value={emp.manager_id ?? "-"} />
+      <div className="card employee-detail-card">
+        <div className="detail-header">
+          <div className="avatar">{initialsOf(fullName)}</div>
+          <div>
+            <h2 className="title">{fullName}</h2>
+            <div className="subtext">{emp.role_title}</div>
           </div>
         </div>
-      )}
+
+        <div className="detail-grid">
+          <Detail label="Email" value={emp.email} />
+          <Detail label="Department" value={emp.department_name || "—"} />
+          <Detail label="Location" value={emp.location || "—"} />
+          <Detail label="Status" value={emp.status} />
+          <Detail label="Employment Type" value={emp.employment_type || "—"} />
+          <Detail label="Hire Date" value={emp.hire_date || "—"} />
+          <Detail label="Salary" value={emp.salary ? formatMoney(emp.salary) : "—"} />
+          <Detail label="Manager ID" value={emp.manager_id ?? "—"} />
+        </div>
+
+        <div className="detail-actions">
+          <button className="btn" onClick={() => nav(`/employees/${emp.id}/edit`)}>Edit</button>
+        </div>
+      </div>
     </div>
   );
 }
 
-function Field({ label, value }) {
+function Detail({ label, value }) {
   return (
-    <div>
-      <div className="text-gray-500">{label}</div>
-      <div className="font-medium">{value}</div>
+    <div className="detail-item">
+      <div className="label">{label}</div>
+      <div className="value">{value}</div>
     </div>
   );
+}
+
+function initialsOf(name) {
+  const parts = String(name || "").trim().split(/\s+/);
+  return (parts[0]?.[0] || "") + (parts[1]?.[0] || "");
+}
+function formatMoney(n) {
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  } catch {
+    return `$${n}`;
+  }
 }

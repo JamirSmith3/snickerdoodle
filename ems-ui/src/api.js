@@ -1,79 +1,84 @@
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+// ems-ui/src/api.js
+const API = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
-async function handle(res) {
-  if (!res.ok) {
-    const text = await res.text().catch(()=> "Request failed");
-    throw new Error(text || res.statusText);
+// Core request with auth & 401 handling — returns the raw Response
+async function requestRaw(path, { method = "GET", json, headers, ...rest } = {}) {
+  const token = localStorage.getItem("token");
+  const opts = {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(headers || {}),
+    },
+    ...rest,
+  };
+  if (json !== undefined) opts.body = JSON.stringify(json);
+
+  const res = await fetch(`${API}${path}`, opts);
+
+  if (res.status === 401) {
+    // auto sign-out + redirect
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    if (!location.pathname.startsWith("/login")) {
+      const u = new URL("/login", location.origin);
+      u.searchParams.set("expired", "1");
+      location.href = u.toString();
+    }
+    throw new Error("Session expired");
   }
+
+  if (!res.ok) {
+    let msg = res.statusText;
+    try { msg = await res.text(); } catch {}
+    throw new Error(msg || "Request failed");
+  }
+
+  return res;
+}
+
+// Convenience: JSON body only
+async function requestJSON(path, opts) {
+  const res = await requestRaw(path, opts);
   const ct = res.headers.get("content-type") || "";
   return ct.includes("application/json") ? res.json() : res.text();
 }
 
-export async function login(username, password) {
-  const res = await fetch(`${API}/users/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-  return handle(res); // token (text) or json depending on your server
+export function login(username, password) {
+  return requestJSON("/users/login", { method: "POST", json: { username, password } })
+    .then((token) => (typeof token === "string" ? token : String(token)));
 }
 
-export async function listEmployees(token, params={}) {
+export const getDepartments = () => requestJSON("/departments");
+
+/**
+ * listEmployees — always returns { rows, count }
+ * - Only sends defined params
+ * - Supports both server shapes:
+ *   a) response is an array + X-Total-Count header
+ *   b) response is { rows, count }
+ */
+export async function listEmployees(params = {}) {
   const qs = new URLSearchParams();
-  Object.entries(params).forEach(([k,v])=>{
-    if (v !== "" && v != null) qs.set(k, String(v));
-  });
-  const res = await fetch(`${API}/employees?${qs.toString()}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === "") continue;
+    qs.set(k, String(v));
+  }
+  const q = qs.toString();
 
+  const res = await requestRaw(`/employees${q ? `?${q}` : ""}`);
   const ct = res.headers.get("content-type") || "";
-  const data = ct.includes("application/json") ? await res.json() : await res.text();
-  if (!res.ok) throw new Error(typeof data === "string" ? data : "Request failed");
+  const body = ct.includes("application/json") ? await res.json() : await res.text();
 
-  const totalHeader = res.headers.get("x-total-count");
-  const total =
-    totalHeader != null ? Number(totalHeader) :
-    Array.isArray(data) ? data.length : Number(data?.count ?? 0);
+  const headerCount = Number(res.headers.get("X-Total-Count") || 0);
+  const rows = Array.isArray(body) ? body : Array.isArray(body?.rows) ? body.rows : [];
+  const count = headerCount || Number(body?.count || rows.length || 0);
 
-  const rows = Array.isArray(data) ? data : (data?.rows ?? []);
-  return { rows, total };
+  return { rows, count };
 }
 
-export async function getDepartments(token){
-  const res = await fetch(`${API}/departments`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  return handle(res);
-}
-
-export async function getEmployee(token, id){
-  const res = await fetch(`${API}/employees/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return handle(res);
-}
-export async function createEmployee(token, payload){
-  const res = await fetch(`${API}/employees`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json", Authorization:`Bearer ${token}`},
-    body: JSON.stringify(payload),
-  });
-  return handle(res);
-}
-export async function updateEmployee(token, id, payload){
-  const res = await fetch(`${API}/employees/${id}`, {
-    method: "PATCH",
-    headers: {"Content-Type":"application/json", Authorization:`Bearer ${token}`},
-    body: JSON.stringify(payload),
-  });
-  return handle(res);
-}
-export async function deleteEmployee(token, id){
-  const res = await fetch(`${API}/employees/${id}`, {
-    method: "DELETE",
-    headers: { Authorization:`Bearer ${token}` },
-  });
-  if (!res.ok && res.status !== 204) throw new Error(await res.text());
-  return true;
-}
+export const getEmployee    = (id)      => requestJSON(`/employees/${id}`);
+export const createEmployee = (payload) => requestJSON("/employees", { method: "POST",  json: payload });
+export const updateEmployee = (id, patch) => requestJSON(`/employees/${id}`, { method: "PATCH", json: patch });
+export const deleteEmployee = (id)      => requestJSON(`/employees/${id}`, { method: "DELETE" });

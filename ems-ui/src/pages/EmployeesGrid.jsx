@@ -1,128 +1,152 @@
+// ems-ui/src/pages/EmployeesGrid.jsx
 import { useEffect, useMemo, useState } from "react";
-import { listEmployees, getDepartments } from "../api";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../auth";
+import { Link, useSearchParams } from "react-router-dom";
+import { getDepartments, listEmployees } from "../api";
 
-function EmployeeCard({ e }){
-  const statusClass = e.status === "ACTIVE" ? "badge ok" : "badge bad";
+const PAGE_SIZE = 12;
+
+export default function EmployeesGrid() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [q, setQ] = useState(() => searchParams.get("q") || "");
+  const [departmentId, setDepartmentId] = useState(() => searchParams.get("department_id") || "");
+  const [status, setStatus] = useState(() => searchParams.get("status") || "");
+  const [page, setPage] = useState(() => Number(searchParams.get("page") || "1"));
+
+  const [depts, setDepts] = useState([]);
+  const [rows, setRows] = useState([]);
+  const [count, setCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    getDepartments().then(setDepts).catch(() => setDepts([]));
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    setErr("");
+
+    const offset = (page - 1) * PAGE_SIZE;
+    const params = {
+      q: q || undefined,
+      department_id: departmentId || undefined,
+      status: status || undefined,
+      limit: PAGE_SIZE,
+      offset,
+    };
+
+    listEmployees(params)
+      .then(({ rows, count }) => {
+        setRows(rows);
+        setCount(Number(count || 0));
+      })
+      .catch((e) => {
+        setRows([]);
+        setCount(0);
+        setErr(e.message || "Failed to load employees");
+      })
+      .finally(() => setLoading(false));
+
+    const next = new URLSearchParams();
+    if (q) next.set("q", q);
+    if (departmentId) next.set("department_id", departmentId);
+    if (status) next.set("status", status);
+    if (page !== 1) next.set("page", String(page));
+    setSearchParams(next, { replace: true });
+  }, [q, departmentId, status, page, setSearchParams]);
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(count / PAGE_SIZE)), [count]);
+
   return (
-    <div className="card" style={{padding:14, display:"grid", gap:10}}>
-      <div style={{display:"flex", gap:12}}>
-        <div style={{
-          width:48, height:48, borderRadius:"50%", background:"var(--muted)",
-          display:"grid", placeItems:"center", fontWeight:600
-        }}>
-          {e.first_name[0]}{e.last_name[0]}
-        </div>
-        <div>
-          <div style={{fontWeight:600}}>{e.first_name} {e.last_name}</div>
-          <div style={{fontSize:12, color:"var(--sub)"}}>{e.role_title ?? "-"}</div>
-        </div>
-        <span style={{marginLeft:"auto"}} className={statusClass}>{e.status}</span>
+    <div className="stack-16">
+      {/* Toolbar */}
+      <div className="toolbar toolbar--employees">
+        <input
+          className="input toolbar__search"
+          placeholder="Search"
+          value={q}
+          onChange={(e) => { setPage(1); setQ(e.target.value); }}
+        />
+
+        <select
+          className="input toolbar__select"
+          value={departmentId}
+          onChange={(e) => { setPage(1); setDepartmentId(e.target.value); }}
+          aria-label="Department filter"
+        >
+          <option value="">Dept</option>
+          {depts.map((d) => (
+            <option key={d.id} value={d.id}>{d.name}</option>
+          ))}
+        </select>
+
+        <select
+          className="input toolbar__select"
+          value={status}
+          onChange={(e) => { setPage(1); setStatus(e.target.value); }}
+          aria-label="Status filter"
+        >
+          <option value="">Status</option>
+          <option value="ACTIVE">ACTIVE</option>
+          <option value="INACTIVE">INACTIVE</option>
+        </select>
+
+        <Link to="/employees/new" className="btn primary toolbar__cta">
+          Add employee
+        </Link>
       </div>
-      <div style={{fontSize:12, color:"var(--sub)"}}>
-        {e.department_name ?? e.department_id ?? "-"} • {e.location ?? "-"}
-      </div>
-      <div style={{display:"flex", gap:8}}>
-        <Link className="btn" to={`/employees/${e.id}`}>View</Link>
-        <Link className="btn ghost" to={`/employees/${e.id}/edit`}>Edit</Link>
+
+      {/* Content */}
+      {loading ? (
+        <div className="card" style={{ padding: 24, textAlign: "center" }}>Loading…</div>
+      ) : err ? (
+        <div className="card" style={{ padding: 24, textAlign: "center", color: "var(--bad)" }}>{err}</div>
+      ) : rows.length === 0 ? (
+        <div className="card" style={{ padding: 24, textAlign: "center" }}>No results</div>
+      ) : (
+        <div className="grid">
+          {rows.map((r) => <EmployeeCard key={r.id} row={r} />)}
+        </div>
+      )}
+
+      {/* Pager */}
+      <div className="pager">
+        <button className="btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Prev</button>
+        <div>Page {page} / {totalPages}</div>
+        <button className="btn" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
       </div>
     </div>
   );
 }
 
-export default function EmployeesGrid(){
-  const { token } = useAuth();
-  const nav = useNavigate();
-
-  const [q, setQ] = useState("");
-  const [dept, setDept] = useState("");
-  const [status, setStatus] = useState("");
-  const [sort, setSort] = useState("name"); // local only
-  const [page, setPage] = useState(1);
-  const limit = 12;
-
-  const [rows, setRows] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [depts, setDepts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-
-  const offset = (page-1) * limit;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-
-  async function load(){
-    setLoading(true); setErr("");
-    try{
-      const params = { q, limit, offset };
-      if (dept) params.department_id = dept;
-      if (status) params.status = status;
-      const { rows, total } = await listEmployees(token, params);
-      // local sort to avoid changing API
-      const sorted = [...rows].sort((a,b)=>{
-        if (sort === "name") return (a.last_name+a.first_name).localeCompare(b.last_name+b.first_name);
-        if (sort === "dept") return (a.department_name||"").localeCompare(b.department_name||"");
-        if (sort === "role") return (a.role_title||"").localeCompare(b.role_title||"");
-        return 0;
-      });
-      setRows(sorted);
-      setTotal(total);
-    }catch(e){ setErr(e.message || "Failed to load"); }
-    finally{ setLoading(false); }
-  }
-
-  useEffect(()=>{ load(); /* eslint-disable-next-line */}, [page, sort]);
-  useEffect(()=>{ (async()=>{
-    try{ setDepts(await getDepartments(token)); }catch{}
-  })(); }, [token]);
-
-  function onSearch(){
-    setPage(1);
-    load();
-  }
-
+function EmployeeCard({ row }) {
+  const name = `${row.first_name} ${row.last_name}`;
+  const statusClass = row.status === "ACTIVE" ? "ok" : "bad";
   return (
-    <div style={{display:"grid", gap:14}}>
-      {/* header row */}
-      <div style={{display:"grid", gridTemplateColumns:"1fr auto auto auto auto", gap:10}}>
-        <input className="input" placeholder="Search" value={q}
-          onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter" && onSearch()} />
-        <select className="input" value={dept} onChange={e=>{setDept(e.target.value); setPage(1);}}>
-          <option value="">Dept</option>
-          {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-        <select className="input" value={status} onChange={e=>{setStatus(e.target.value); setPage(1);}}>
-          <option value="">Status</option>
-          <option value="ACTIVE">ACTIVE</option>
-          <option value="INACTIVE">INACTIVE</option>
-        </select>
-        <select className="input" value={sort} onChange={e=>setSort(e.target.value)}>
-          <option value="name">Sort: Name</option>
-          <option value="dept">Sort: Dept</option>
-          <option value="role">Sort: Role</option>
-        </select>
-        <button className="btn primary" onClick={()=>nav("/employees/new")}>Add employee</button>
+    <div className="card employee-card">
+      <div className={`badge ${statusClass} status-pill`}>{row.status}</div>
+      <div className="card-body">
+        <div className="avatar">{initialsOf(name)}</div>
+        <div className="name-title">
+          <div className="name">{name}</div>
+          <div className="subtext">{row.role_title}</div>
+        </div>
       </div>
-
-      {loading && <div>Loading…</div>}
-      {err && <div style={{color:"var(--bad)"}}>{err}</div>}
-
-      {!loading && !err && (
-        <>
-          <div className="grid">
-            {rows.map(e => <EmployeeCard key={e.id} e={e} />)}
-          </div>
-
-          <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-            <div style={{color:"var(--sub)", fontSize:12}}>{total} results</div>
-            <div style={{display:"flex", gap:8, alignItems:"center"}}>
-              <button className="btn" onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page<=1}>Prev</button>
-              <span>Page {page} / {totalPages}</span>
-              <button className="btn" onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page>=totalPages}>Next</button>
-            </div>
-          </div>
-        </>
-      )}
+      <div className="meta-row">
+        <span>{row.department_name || "—"}</span>
+        <span>•</span>
+        <span>{row.location || "—"}</span>
+      </div>
+      <div className="actions">
+        <Link className="btn" to={`/employees/${row.id}`}>View</Link>
+        <Link className="btn" to={`/employees/${row.id}/edit`}>Edit</Link>
+      </div>
     </div>
   );
+}
+
+function initialsOf(name) {
+  const parts = String(name || "").trim().split(/\s+/);
+  return (parts[0]?.[0] || "") + (parts[1]?.[0] || "");
 }

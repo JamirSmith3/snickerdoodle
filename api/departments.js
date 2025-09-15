@@ -1,35 +1,57 @@
+// api/departments.js
 import express from "express";
-const router = express.Router();
-export default router;
-
 import requireUser from "#middleware/requireUser";
 import requireBody from "#middleware/requireBody";
 import {
-  listDepartments, getDepartmentById, createDepartment, updateDepartment, deleteDepartment
+  listDepartments,
+  getDepartmentById,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
 } from "#db/queries/departments";
 
-router.get("/", requireUser, async (req, res) => {
-  const rows = await listDepartments();
-  res.send(rows);
+const router = express.Router();
+export default router;
+
+router.use(requireUser);
+
+// GET /departments
+router.get("/", async (req, res, next) => {
+  try {
+    const rows = await listDepartments();
+    res.json(rows);
+  } catch (e) { next(e); }
 });
 
-router.post("/", requireUser, requireBody(["name"]), async (req, res) => {
-  const dept = await createDepartment(req.body);
-  res.status(201).send(dept);
+// POST /departments
+router.post("/", requireBody(["name"]), async (req, res, next) => {
+  try {
+    const dept = await createDepartment(req.body);
+    res.status(201).json(dept);
+  } catch (e) { next(e); }
 });
 
-router.get("/:id", requireUser, async (req, res) => {
-  const dept = await getDepartmentById(req.params.id);
-  if (!dept) return res.status(404).send("Not found");
-  res.send(dept);
+// GET /departments/:id
+router.get("/:id", async (req, res, next) => {
+  try {
+    const dept = await getDepartmentById(req.params.id);
+    if (!dept) return res.status(404).send("Not found");
+    res.json(dept);
+  } catch (e) { next(e); }
 });
 
-router.patch("/:id", requireUser, async (req, res) => {
-  const dept = await updateDepartment(req.params.id, req.body);
-  res.send(dept);
+// PATCH /departments/:id
+router.patch("/:id", async (req, res, next) => {
+  try {
+    const dept = await updateDepartment(req.params.id, req.body);
+    res.json(dept);
+  } catch (e) { next(e); }
 });
 
-router.delete("/:id", requireUser, async (req, res) => {
-  await deleteDepartment(req.params.id);
-  res.status(204).end();
+// DELETE /departments/:id
+router.delete("/:id", async (req, res, next) => {
+  try {
+    await deleteDepartment(req.params.id);
+    res.status(204).end();
+  } catch (e) { next(e); }
 });

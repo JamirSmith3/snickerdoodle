@@ -1,31 +1,17 @@
 /* ems-ui/src/index.css */
 
-html, body {
-  margin: 0;
-  padding: 0;
-  font-family: system-ui, sans-serif;
-  background-color: #f9fafb;
-  color: #111827;
-}
-
-button {
-  cursor: pointer;
-}
-
+/* --- base (kept) --- */
+html, body { margin:0; padding:0; }
 :root{
   --bg:#0e0e10; --panel:#1b1b1f; --muted:#2a2a31; --text:#e6e6ea; --sub:#a0a0ad;
   --brand:#7c5cff; --ring:#2e2e36; --ok:#2ecc71; --bad:#ff6b6b;
-  --radius:14px;
-  --shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.02);
+  --radius:14px; --shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.02);
 }
-
 *{box-sizing:border-box}
 html,body,#root{height:100%}
-body{margin:0; font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;
-  background:var(--bg); color:var(--text);
-}
+body{font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Arial; background:var(--bg); color:var(--text);}
 
-/* simple UI atoms */
+button{cursor:pointer}
 .input{
   width:100%; padding:.7rem .9rem; border:1px solid var(--ring); background:#141418;
   color:var(--text); border-radius:10px; outline:none;
@@ -45,27 +31,90 @@ body{margin:0; font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;
   background:var(--panel); border:1px solid var(--ring); border-radius:var(--radius);
   box-shadow:var(--shadow);
 }
+.grid{ display:grid; gap:14px; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
 
-.grid{
-  display:grid; gap:14px;
-  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-}
-
-/* layout */
-.app{
-  display:grid; grid-template-columns: 240px 1fr; height:100%;
-}
-.sidebar{
-  padding:18px; border-right:1px solid var(--ring); background:#121216;
-}
+/* layout chrome */
+.app{ display:grid; grid-template-columns: 240px 1fr; height:100%; }
+.sidebar{ padding:18px; border-right:1px solid var(--ring); background:#121216; display:flex; flex-direction:column; }
 .sidebar h3{margin:0 0 12px 0; font-size:.9rem; color:var(--sub)}
 .nav{display:flex; flex-direction:column; gap:8px}
 .nav a{color:var(--text); text-decoration:none; padding:.55rem .7rem; border-radius:10px}
 .nav a.active, .nav a:hover{background:var(--muted)}
-.topbar{
-  display:flex; gap:12px; align-items:center; padding:16px; border-bottom:1px solid var(--ring);
+.topbar{ display:flex; gap:12px; align-items:center; padding:16px; border-bottom:1px solid var(--ring); }
+.content{ padding:18px; overflow:auto; height:calc(100% - 66px) }
+
+.badge{ padding:.2rem .45rem; border-radius:999px; font-size:.72rem; background:#19191f; border:1px solid var(--ring); }
+.badge.ok{ border-color:#2ecc7199; color:#aef3c8 }
+.badge.bad{ border-color:#ff6b6b99; color:#ffc1c1 }
+
+/* --- helpers --- */
+.stack-16 { display:flex; flex-direction:column; gap:16px; }
+.row-between { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.toolbar { display:flex; gap:10px; align-items:center; }
+.pager { display:flex; gap:12px; align-items:center; justify-content:flex-end; padding-top:8px; color:var(--sub) }
+
+/* --- employee card --- */
+.employee-card { position:relative; padding:14px; display:flex; flex-direction:column; gap:10px; }
+.employee-card .card-body { display:flex; gap:12px; align-items:center; }
+.employee-card .avatar {
+  width:40px; height:40px; border-radius:999px; display:grid; place-items:center;
+  background:#141418; border:1px solid var(--ring); font-weight:600;
 }
-.content{padding:18px; overflow:auto; height:calc(100% - 66px)}
-.badge{padding:.2rem .45rem; border-radius:999px; font-size:.72rem; background:#19191f; border:1px solid var(--ring)}
-.badge.ok{border-color:#2ecc7199; color:#aef3c8}
-.badge.bad{border-color:#ff6b6b99; color:#ffc1c1}
+.employee-card .name { font-weight:600; }
+.employee-card .subtext { color:var(--sub); font-size:.9rem; }
+.employee-card .meta-row { display:flex; gap:8px; align-items:center; color:var(--sub); font-size:.9rem; }
+.employee-card .actions { display:flex; gap:8px; }
+
+/* status alignment (grid AND detail) */
+.status-pill { position:absolute; top:12px; right:12px; }
+
+/* --- detail view --- */
+.employee-detail-card { position:relative; padding:18px; }
+.detail-header { display:flex; gap:12px; align-items:center; margin-bottom:10px; }
+.detail-header .avatar {
+  width:48px; height:48px; border-radius:999px; display:grid; place-items:center;
+  background:#141418; border:1px solid var(--ring); font-weight:700; font-size:1.05rem;
+}
+.title { margin:0; }
+.subtext { color:var(--sub); font-size:.95rem; }
+
+.detail-grid {
+  display:grid; gap:12px; grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top:8px;
+}
+.detail-item .label { color:var(--sub); font-size:.8rem; margin-bottom:3px; }
+.detail-item .value { font-weight:500; }
+
+.detail-actions { display:flex; justify-content:flex-end; padding-top:10px; }
+
+/* Toolbar layout tweaks */
+.toolbar { display:flex; gap:12px; align-items:center; }
+
+/* employees toolbar variant */
+.toolbar--employees {
+  /* ensures the bar uses full width elegantly */
+  width: 100%;
+}
+
+/* Search: long & flexible */
+.toolbar__search {
+  flex: 1 1 560px;          /* grows; base ~560px */
+  min-width: 360px;         /* won’t get too tiny */
+}
+
+/* Selects: compact */
+.toolbar__select {
+  flex: 0 0 160px;          /* fixed ~160px */
+  max-width: 180px;
+}
+
+/* CTA: wider, never wraps */
+.toolbar__cta {
+  flex: 0 0 auto;
+  min-width: 144px;         /* room for label */
+  padding-inline: 1.05rem 1.2rem;
+  white-space: nowrap;      /* prevent “Add”/“employee” wrap */
+}
+
+/* In case your .btn elsewhere allows wrapping */
+.btn { white-space: nowrap; }
