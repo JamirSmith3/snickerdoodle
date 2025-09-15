@@ -1,7 +1,12 @@
 // ems-ui/src/api.js
 const API = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
-// Core request with auth & 401 handling — returns the raw Response
+// Simple pub/sub so UI can show a global error banner with a Retry action
+const listeners = new Set();
+export function addApiErrorListener(fn) { listeners.add(fn); return () => listeners.delete(fn); }
+function emitApiError(payload) { for (const fn of listeners) try { fn(payload); } catch {} }
+
+// --- low-level request that returns Response and wires retry ---
 async function requestRaw(path, { method = "GET", json, headers, ...rest } = {}) {
   const token = localStorage.getItem("token");
   const opts = {
@@ -15,10 +20,19 @@ async function requestRaw(path, { method = "GET", json, headers, ...rest } = {})
   };
   if (json !== undefined) opts.body = JSON.stringify(json);
 
-  const res = await fetch(`${API}${path}`, opts);
+  const url = `${API}${path}`;
+
+  const doFetch = () => fetch(url, opts);
+
+  let res;
+  try {
+    res = await doFetch();
+  } catch (networkErr) {
+    emitApiError({ message: "Network error. Check your connection.", retry: () => doFetch() });
+    throw networkErr;
+  }
 
   if (res.status === 401) {
-    // auto sign-out + redirect
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     if (!location.pathname.startsWith("/login")) {
@@ -32,13 +46,18 @@ async function requestRaw(path, { method = "GET", json, headers, ...rest } = {})
   if (!res.ok) {
     let msg = res.statusText;
     try { msg = await res.text(); } catch {}
+    // Offer retry for idempotent GET/HEAD
+    const canRetry = method === "GET" || method === "HEAD";
+    emitApiError({
+      message: msg || "Request failed",
+      retry: canRetry ? () => fetch(url, opts) : null
+    });
     throw new Error(msg || "Request failed");
   }
 
   return res;
 }
 
-// Convenience: JSON body only
 async function requestJSON(path, opts) {
   const res = await requestRaw(path, opts);
   const ct = res.headers.get("content-type") || "";
@@ -52,13 +71,7 @@ export function login(username, password) {
 
 export const getDepartments = () => requestJSON("/departments");
 
-/**
- * listEmployees — always returns { rows, count }
- * - Only sends defined params
- * - Supports both server shapes:
- *   a) response is an array + X-Total-Count header
- *   b) response is { rows, count }
- */
+// Always normalize to { rows, count }
 export async function listEmployees(params = {}) {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {

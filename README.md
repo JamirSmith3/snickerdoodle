@@ -1,10 +1,20 @@
-# Backend Template
+# Employee Manager (MVP → Polished v1)
 
-You can use this repository as a template for your backend. It comes with a `users` table
-as well as routes to register and login.
+Full-stack demo: Node/Express + Postgres API, React/Vite UI.
 
-## Usage
+## Quick start
 
-1. Change the name of the package in `package.json`.
-2. Change the database name from `foobar` in the `db:schema` script.
-3. Update the environment variables in `example.env` and rename the file to `.env`.
+### 1) Backend
+
+```bash
+# in repo root
+cp .env.example .env
+# update DATABASE_URL if needed
+npm install
+npm run db:setup   # optional: run your schema + seed script if you have one
+npm run dev        # starts server on PORT (default 3000)
+
+2) Frontend
+Login with demo:
+VITE_DEMO_USER=admin
+VITE_DEMO_PASS=admin123

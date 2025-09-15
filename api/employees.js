@@ -3,6 +3,7 @@ import express from "express";
 import requireUser from "#middleware/requireUser";
 import requireBody from "#middleware/requireBody";
 import handlePostgresErrors from "#middleware/handlePostgresErrors";
+import validateEmployee from "#middleware/validateEmployee";
 import db from "#db/client"; // ⬅️ add this
 import {
   listEmployees,
@@ -84,6 +85,7 @@ router.get("/:id", async (req, res, next) => {
 router.post(
   "/",
   requireBody(["first_name","last_name","email","role_title"]),
+   validateEmployee(),          // <── FULL validation
   async (req, res, next) => {
     try {
       // Reuse some basic create-time checks
@@ -120,6 +122,18 @@ router.patch("/:id", async (req, res, next) => {
     handlePostgresErrors(e, req, res, next);
   }
 });
+
+// PATCH /employees/:id
+router.patch(
+  "/:id",
+  validateEmployee({ allowPartial: true }), // <── PARTIAL validation
+  async (req, res, next) => {
+    try {
+      const row = await updateEmployee(Number(req.params.id), req.body);
+      res.json(row);
+    } catch (e) { next(e); }
+  }
+);
 
 router.delete("/:id", async (req, res, next) => {
   try {

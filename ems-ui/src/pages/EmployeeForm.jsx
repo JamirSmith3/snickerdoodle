@@ -1,30 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { createEmployee, getDepartments, getEmployee, updateEmployee } from "../api";
+import { useToast } from "../components/ToastHost";
 
 const EMPTY = {
-  first_name: "",
-  last_name: "",
-  email: "",
-  role_title: "",
-  department_id: "",
-  status: "ACTIVE",
-  employment_type: "FT",
-  location: "",
-  hire_date: "",
-  salary: "",
-  manager_id: "",
+  first_name: "", last_name: "", email: "", role_title: "",
+  department_id: "", status: "ACTIVE", employment_type: "FT",
+  location: "", hire_date: "", salary: "", manager_id: "",
 };
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function EmployeeForm() {
+  const toast = useToast();
   const { id: idParam } = useParams();
   const isEdit = useMemo(() => /^\d+$/.test(String(idParam || "")), [idParam]);
   const numericId = isEdit ? Number(idParam) : null;
 
   const nav = useNavigate();
-
   const [depts, setDepts] = useState([]);
   const [values, setValues] = useState(EMPTY);
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -32,30 +28,25 @@ export default function EmployeeForm() {
     let mounted = true;
     (async () => {
       try {
-        const [deptList, employee] = await Promise.all([
+        const [deptList, emp] = await Promise.all([
           getDepartments(),
           isEdit ? getEmployee(numericId) : Promise.resolve(null),
         ]);
         if (!mounted) return;
-
         setDepts(deptList || []);
-        if (employee) {
-          setValues({
-            first_name: employee.first_name || "",
-            last_name: employee.last_name || "",
-            email: employee.email || "",
-            role_title: employee.role_title || "",
-            department_id: employee.department_id ?? "",
-            status: employee.status || "ACTIVE",
-            employment_type: employee.employment_type || "FT",
-            location: employee.location || "",
-            hire_date: employee.hire_date || "",
-            salary: employee.salary ?? "",
-            manager_id: employee.manager_id ?? "",
-          });
-        } else {
-          setValues(EMPTY);
-        }
+        setValues(emp ? {
+          first_name: emp.first_name || "",
+          last_name:  emp.last_name  || "",
+          email:      emp.email      || "",
+          role_title: emp.role_title || "",
+          department_id: emp.department_id ?? "",
+          status: emp.status || "ACTIVE",
+          employment_type: emp.employment_type || "FT",
+          location: emp.location || "",
+          hire_date: emp.hire_date || "",
+          salary: emp.salary ?? "",
+          manager_id: emp.manager_id ?? "",
+        } : EMPTY);
       } catch (e) {
         setErr(e.message || "Failed to load form");
       } finally {
@@ -68,13 +59,37 @@ export default function EmployeeForm() {
   function onChange(e) {
     const { name, value } = e.target;
     setValues((v) => ({ ...v, [name]: value }));
+    setErrors((es) => ({ ...es, [name]: undefined }));
+  }
+
+  function validate(v) {
+    const es = {};
+    if (!v.first_name.trim()) es.first_name = "First name is required.";
+    if (!v.last_name.trim())  es.last_name  = "Last name is required.";
+    if (!EMAIL_RE.test(v.email.trim())) es.email = "Enter a valid email.";
+    if (!v.role_title.trim()) es.role_title = "Role title is required.";
+
+    if (v.salary !== "" && v.salary !== null) {
+      const n = Number(v.salary);
+      if (Number.isNaN(n)) es.salary = "Salary must be a number.";
+      else if (n <= 0)     es.salary = "Salary must be greater than 0.";
+    }
+    if (v.hire_date && isNaN(Date.parse(v.hire_date))) {
+      es.hire_date = "Enter a valid date.";
+    }
+    if (v.manager_id !== "" && v.manager_id !== null) {
+      const m = Number(v.manager_id);
+      if (!Number.isInteger(m) || m < 1) es.manager_id = "Manager ID must be an integer ≥ 1, or leave blank.";
+    }
+    return es;
   }
 
   async function onSubmit(e) {
     e.preventDefault();
-    setErr("");
+    const es = validate(values);
+    setErrors(es);
+    if (Object.keys(es).length) return;
 
-    // build clean payload
     const payload = {
       first_name: values.first_name.trim(),
       last_name: values.last_name.trim(),
@@ -85,39 +100,21 @@ export default function EmployeeForm() {
       employment_type: values.employment_type || "FT",
       location: values.location.trim() || null,
       hire_date: values.hire_date || null,
-      salary:
-        values.salary === "" || values.salary === null
-          ? null
-          : Number(values.salary),
-      manager_id:
-        values.manager_id === "" || values.manager_id === null
-          ? null
-          : Number(values.manager_id),
+      salary: values.salary === "" ? null : Number(values.salary),
+      manager_id: values.manager_id === "" ? null : Number(values.manager_id),
     };
-
-    // client-side guards (lightweight)
-    if (!payload.first_name || !payload.last_name || !payload.email || !payload.role_title) {
-      setErr("Please fill all required fields.");
-      return;
-    }
-    if (payload.salary !== null && Number.isNaN(payload.salary)) {
-      setErr("Salary must be a number.");
-      return;
-    }
-    if (payload.manager_id !== null && (!Number.isInteger(payload.manager_id) || payload.manager_id < 1)) {
-      setErr("Manager ID must be an integer ≥ 1 or left blank.");
-      return;
-    }
 
     try {
       if (isEdit && numericId) {
         await updateEmployee(numericId, payload);
+        toast.show("Employee updated successfully.");
       } else {
         await createEmployee(payload);
+        toast.show("Employee created successfully.");
       }
       nav("/employees");
-    } catch (e) {
-      setErr(e.message || "Save failed");
+    } catch (e2) {
+      setErr(e2.message || "Save failed");
     }
   }
 
@@ -130,19 +127,19 @@ export default function EmployeeForm() {
         <Link to="/employees" className="btn">Back to list</Link>
       </div>
 
-      <form className="card" style={{ padding: 16 }} onSubmit={onSubmit}>
+      <form className="card" style={{ padding: 16 }} onSubmit={onSubmit} noValidate>
         <div className="detail-grid">
-          <Field label="First name *">
+          <Field label="First name *" error={errors.first_name}>
             <input className="input" name="first_name" value={values.first_name} onChange={onChange} />
           </Field>
-          <Field label="Last name *">
+          <Field label="Last name *" error={errors.last_name}>
             <input className="input" name="last_name" value={values.last_name} onChange={onChange} />
           </Field>
 
-          <Field label="Email *">
-            <input className="input" name="email" value={values.email} onChange={onChange} />
+          <Field label="Email *" error={errors.email}>
+            <input className="input" name="email" value={values.email} onChange={onChange} inputMode="email" />
           </Field>
-          <Field label="Role title *">
+          <Field label="Role title *" error={errors.role_title}>
             <input className="input" name="role_title" value={values.role_title} onChange={onChange} />
           </Field>
 
@@ -170,14 +167,14 @@ export default function EmployeeForm() {
             <input className="input" name="location" value={values.location} onChange={onChange} />
           </Field>
 
-          <Field label="Hire date">
+          <Field label="Hire date" error={errors.hire_date}>
             <input className="input" type="date" name="hire_date" value={values.hire_date || ""} onChange={onChange} />
           </Field>
-          <Field label="Salary">
+          <Field label="Salary" error={errors.salary}>
             <input className="input" name="salary" value={values.salary} onChange={onChange} inputMode="decimal" />
           </Field>
 
-          <Field label="Manager ID">
+          <Field label="Manager ID" error={errors.manager_id}>
             <input className="input" name="manager_id" placeholder="e.g. 2" value={values.manager_id ?? ""} onChange={onChange} inputMode="numeric" />
           </Field>
         </div>
@@ -195,11 +192,12 @@ export default function EmployeeForm() {
   );
 }
 
-function Field({ label, children }) {
+function Field({ label, error, children }) {
   return (
     <div className="detail-item">
       <div className="label">{label}</div>
       <div className="value">{children}</div>
+      {error && <div className="field-error">{error}</div>}
     </div>
   );
 }

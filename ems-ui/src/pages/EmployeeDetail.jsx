@@ -1,7 +1,7 @@
-// ems-ui/src/pages/EmployeeDetail.jsx
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { getEmployee } from "../api";
+import Avatar from "../components/Avatar";
 
 export default function EmployeeDetail() {
   const { id } = useParams();
@@ -33,22 +33,23 @@ export default function EmployeeDetail() {
   const statusClass = emp.status === "ACTIVE" ? "ok" : "bad";
 
   return (
-    <div className="stack-16">
+    <section className="stack-16" aria-labelledby="emp-title">
       <div className="row-between">
-        <Link to="/employees" className="btn">
-          ← Back to list
-        </Link>
-        <div className={`badge ${statusClass} status-pill`}>{emp.status}</div>
+        <Link to="/employees" className="btn" aria-label="Back to employees list">← Back to list</Link>
+        <div className={`badge ${statusClass} status-pill`} aria-label={`Status ${emp.status}`}>{emp.status}</div>
       </div>
 
-      <div className="card employee-detail-card">
-        <div className="detail-header">
-          <div className="avatar">{initialsOf(fullName)}</div>
+      <article className="card employee-detail-card">
+        <header className="detail-header">
+          <Avatar name={fullName} size={48} />
           <div>
-            <h2 className="title">{fullName}</h2>
+            <h2 className="title" id="emp-title">{fullName}</h2>
             <div className="subtext">{emp.role_title}</div>
+            {emp.manager_name && emp.manager_id && (
+              <div className="subtext">Manager: <Link to={`/employees/${emp.manager_id}`} className="link">{emp.manager_name}</Link></div>
+            )}
           </div>
-        </div>
+        </header>
 
         <div className="detail-grid">
           <Detail label="Email" value={emp.email} />
@@ -62,10 +63,10 @@ export default function EmployeeDetail() {
         </div>
 
         <div className="detail-actions">
-          <button className="btn" onClick={() => nav(`/employees/${emp.id}/edit`)}>Edit</button>
+          <button className="btn" onClick={() => nav(`/employees/${emp.id}/edit`)} aria-label="Edit employee">Edit</button>
         </div>
-      </div>
-    </div>
+      </article>
+    </section>
   );
 }
 
@@ -76,11 +77,6 @@ function Detail({ label, value }) {
       <div className="value">{value}</div>
     </div>
   );
-}
-
-function initialsOf(name) {
-  const parts = String(name || "").trim().split(/\s+/);
-  return (parts[0]?.[0] || "") + (parts[1]?.[0] || "");
 }
 function formatMoney(n) {
   try {

@@ -1,14 +1,26 @@
 // db/queries/employees.js
-import db from "#db/client";
+import db from "../client.js";
 
-export async function listEmployees({ limit = 20, offset = 0, q = null, department_id = null, status = null } = {}) {
+/**
+ * LIST with filters + count
+ * Adds department_name and manager_name.
+ */
+export async function listEmployees({
+  limit = 20,
+  offset = 0,
+  q = undefined,
+  department_id = undefined,
+  status = undefined,
+} = {}) {
   const params = [];
   const where = [];
 
   if (q) {
     params.push(`%${q}%`);
     where.push(
-      `(e.first_name ILIKE $${params.length} OR e.last_name ILIKE $${params.length} OR e.email ILIKE $${params.length})`
+      `(e.first_name ILIKE $${params.length}
+        OR e.last_name ILIKE $${params.length}
+        OR e.email ILIKE $${params.length})`
     );
   }
   if (department_id) {
@@ -22,66 +34,89 @@ export async function listEmployees({ limit = 20, offset = 0, q = null, departme
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
-  // count
-  const countSql = `SELECT COUNT(*)::int AS count FROM employees e ${whereSql};`;
-  const { rows: [{ count }] } = await db.query(countSql, params);
+  const { rows: [{ count }] } = await db.query(
+    `SELECT COUNT(*)::int AS count
+     FROM employees e
+     ${whereSql}`,
+    params
+  );
 
-  // data
   params.push(limit);
   params.push(offset);
-  const sql = `
-    SELECT e.*, d.name AS department_name
-    FROM employees e
-    LEFT JOIN departments d ON d.id = e.department_id
-    ${whereSql}
-    ORDER BY e.last_name, e.first_name
-    LIMIT $${params.length - 1} OFFSET $${params.length};
-  `;
-  const { rows } = await db.query(sql, params);
+
+  const { rows } = await db.query(
+    `SELECT
+        e.*,
+        d.name AS department_name,
+        (m.first_name || ' ' || m.last_name) AS manager_name
+     FROM employees e
+     LEFT JOIN departments d ON d.id = e.department_id
+     LEFT JOIN employees   m ON m.id = e.manager_id
+     ${whereSql}
+     ORDER BY e.last_name, e.first_name
+     LIMIT $${params.length - 1} OFFSET $${params.length};`,
+    params
+  );
+
   return { rows, count };
 }
 
+/**
+ * GET one by id
+ * Adds department_name and manager_name.
+ */
 export async function getEmployee(id) {
-  const { rows: [row] } = await db.query(
-    `SELECT e.*, d.name AS department_name
+  const { rows } = await db.query(
+    `SELECT
+        e.*,
+        d.name AS department_name,
+        (m.first_name || ' ' || m.last_name) AS manager_name
      FROM employees e
      LEFT JOIN departments d ON d.id = e.department_id
-     WHERE e.id = $1`,
+     LEFT JOIN employees   m ON m.id = e.manager_id
+     WHERE e.id = $1;`,
     [id]
   );
-  return row;
+  return rows[0] || null;
 }
 
+/** CREATE */
 export async function createEmployee(payload) {
   const cols = [
-    "first_name","last_name","email","department_id","manager_id","role_title",
-    "employment_type","status","location","hire_date","salary"
+    "first_name","last_name","email","role_title","department_id",
+    "status","employment_type","location","hire_date","salary","manager_id"
   ];
-  const values = cols.map((_, i) => `$${i + 1}`);
-  const params = cols.map(c => payload[c] ?? null);
-  const sql = `
-    INSERT INTO employees (${cols.join(",")})
-    VALUES (${values.join(",")})
-    RETURNING *;
-  `;
-  const { rows: [row] } = await db.query(sql, params);
-  return row;
+  const vals = cols.map((_, i) => `$${i + 1}`);
+  const args = cols.map((k) => payload[k] ?? null);
+
+  const { rows } = await db.query(
+    `INSERT INTO employees (${cols.join(",")})
+     VALUES (${vals.join(",")})
+     RETURNING *;`,
+    args
+  );
+  return rows[0];
 }
 
+/** UPDATE (partial) */
 export async function updateEmployee(id, patch) {
   const keys = Object.keys(patch);
-  if (keys.length === 0) return getEmployee(id);
-  const sets = keys.map((k, i) => `${k} = $${i + 1}`);
-  const params = keys.map(k => patch[k]);
-  params.push(id);
-  const { rows: [row] } = await db.query(
-    `UPDATE employees SET ${sets.join(", ")}, updated_at = now() WHERE id = $${params.length} RETURNING *`,
-    params
+  if (keys.length === 0) {
+    const { rows } = await db.query(`SELECT * FROM employees WHERE id=$1`, [id]);
+    return rows[0] || null;
+  }
+  const sets = keys.map((k, i) => `${k}=$${i + 1}`);
+  const args = keys.map((k) => patch[k]);
+  args.push(id);
+
+  const { rows } = await db.query(
+    `UPDATE employees SET ${sets.join(", ")} WHERE id=$${args.length} RETURNING *;`,
+    args
   );
-  return row;
+  return rows[0] || null;
 }
 
+/** DELETE */
 export async function deleteEmployee(id) {
-  await db.query(`DELETE FROM employees WHERE id = $1`, [id]);
-  return { ok: true };
+  await db.query(`DELETE FROM employees WHERE id=$1`, [id]);
 }
