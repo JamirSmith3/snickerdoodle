@@ -33,8 +33,7 @@ export default function Employees() {
 
   useEffect(() => {
     fetchEmployees();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]); // refetch when page changes
+  }, [page]);
 
   function onSearch() {
     setPage(1);

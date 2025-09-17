@@ -1,12 +1,9 @@
-// ems-ui/src/api.js
 const API = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
-// Simple pub/sub so UI can show a global error banner with a Retry action
 const listeners = new Set();
 export function addApiErrorListener(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 function emitApiError(payload) { for (const fn of listeners) try { fn(payload); } catch {} }
 
-// --- low-level request that returns Response and wires retry ---
 async function requestRaw(path, { method = "GET", json, headers, ...rest } = {}) {
   const token = localStorage.getItem("token");
   const opts = {
@@ -46,7 +43,6 @@ async function requestRaw(path, { method = "GET", json, headers, ...rest } = {})
   if (!res.ok) {
     let msg = res.statusText;
     try { msg = await res.text(); } catch {}
-    // Offer retry for idempotent GET/HEAD
     const canRetry = method === "GET" || method === "HEAD";
     emitApiError({
       message: msg || "Request failed",
@@ -71,7 +67,6 @@ export function login(username, password) {
 
 export const getDepartments = () => requestJSON("/departments");
 
-// Always normalize to { rows, count }
 export async function listEmployees(params = {}) {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {

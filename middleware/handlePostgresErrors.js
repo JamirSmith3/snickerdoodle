@@ -14,7 +14,7 @@ export default function handlePostgresErrors(err, req, res, next) {
     case ERRORS.FOREIGN_KEY_VIOLATION:
       return res.status(400).json({ error: err.detail });
     case ERRORS.UNIQUE_VIOLATION:
-      return res.status(409).json({ error: err.detail }); // 409 is nice for conflicts
+      return res.status(409).json({ error: err.detail });
     default:
       return next(err);
   }

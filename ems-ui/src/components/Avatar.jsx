@@ -15,7 +15,6 @@ function getInitials(n) {
   return (parts[0]?.[0] || "").toUpperCase() + (parts[1]?.[0] || "").toUpperCase();
 }
 
-// Deterministic color from string
 function colorFromString(s) {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;

@@ -19,7 +19,6 @@ export default function EmployeesGrid() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // ESC clears search
   const onEsc = useCallback((e) => {
     if (e.key === "Escape") {
       setQ("");

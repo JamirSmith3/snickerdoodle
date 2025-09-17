@@ -1,6 +1,3 @@
-/* ems-ui/src/index.css */
-
-/* --- base (kept) --- */
 html, body { margin:0; padding:0; }
 :root{
   --bg:#0e0e10; --panel:#1b1b1f; --muted:#2a2a31; --text:#e6e6ea; --sub:#a0a0ad;
@@ -47,13 +44,11 @@ button{cursor:pointer}
 .badge.ok{ border-color:#2ecc7199; color:#aef3c8 }
 .badge.bad{ border-color:#ff6b6b99; color:#ffc1c1 }
 
-/* --- helpers --- */
 .stack-16 { display:flex; flex-direction:column; gap:16px; }
 .row-between { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .toolbar { display:flex; gap:10px; align-items:center; }
 .pager { display:flex; gap:12px; align-items:center; justify-content:flex-end; padding-top:8px; color:var(--sub) }
 
-/* --- employee card --- */
 .employee-card { position:relative; padding:14px; display:flex; flex-direction:column; gap:10px; }
 .employee-card .card-body { display:flex; gap:12px; align-items:center; }
 .employee-card .avatar {
@@ -65,10 +60,8 @@ button{cursor:pointer}
 .employee-card .meta-row { display:flex; gap:8px; align-items:center; color:var(--sub); font-size:.9rem; }
 .employee-card .actions { display:flex; gap:8px; }
 
-/* status alignment (grid AND detail) */
 .status-pill { position:absolute; top:12px; right:12px; }
 
-/* --- detail view --- */
 .employee-detail-card { position:relative; padding:18px; }
 .detail-header { display:flex; gap:12px; align-items:center; margin-bottom:10px; }
 .detail-header .avatar {
@@ -87,46 +80,38 @@ button{cursor:pointer}
 
 .detail-actions { display:flex; justify-content:flex-end; padding-top:10px; }
 
-/* Toolbar layout tweaks */
 .toolbar { display:flex; gap:12px; align-items:center; }
 
-/* employees toolbar variant */
 .toolbar--employees {
-  /* ensures the bar uses full width elegantly */
   width: 100%;
 }
 
-/* Search: long & flexible */
 .toolbar__search {
-  flex: 1 1 560px;          /* grows; base ~560px */
-  min-width: 360px;         /* won’t get too tiny */
+  flex: 1 1 560px;
+  min-width: 360px;
 }
 
-/* Selects: compact */
 .toolbar__select {
-  flex: 0 0 160px;          /* fixed ~160px */
+  flex: 0 0 160px;
   max-width: 180px;
 }
 
-/* CTA: wider, never wraps */
+
 .toolbar__cta {
   flex: 0 0 auto;
-  min-width: 144px;         /* room for label */
+  min-width: 144px; 
   padding-inline: 1.05rem 1.2rem;
-  white-space: nowrap;      /* prevent “Add”/“employee” wrap */
+  white-space: nowrap; 
 }
 
-/* In case your .btn elsewhere allows wrapping */
 .btn { white-space: nowrap; }
 
-/* Global error banner */
 .global-error{
   display:flex; gap:10px; align-items:center; justify-content:space-between;
   background:#3a1518; border:1px solid #ff6b6b55; color:#ffd7d7;
   padding:.6rem .8rem; border-radius:10px; margin-bottom:12px;
 }
 
-/* Toasts */
 .toast-host{
   position:fixed; right:18px; bottom:18px; display:flex; flex-direction:column; gap:8px; z-index:9999;
 }
@@ -137,33 +122,27 @@ button{cursor:pointer}
 .toast.success{ border-color:#2ecc71aa; }
 .toast.error{ border-color:#ff6b6baa; }
 
-/* Inline field errors */
 .field-error{
   color: var(--bad);
   font-size: .85rem;
   margin-top: 6px;
 }
 
-/* Screen-reader only */
 .sr-only {
   position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
 }
 
-/* Focus visible: make keyboard focus easy to see */
 :focus-visible {
   outline: 2px solid #9ab6ff;
   outline-offset: 2px;
   border-radius: 8px;
 }
 
-/* Status pill contrast */
 .badge.ok   { background:#0d3b22; color:#baf7d3; border:1px solid #118e53; }
 .badge.bad  { background:#3b1010; color:#ffd3d3; border:1px solid #e45b5b; }
 
-/* Link look inside cards */
 .link { color: #9ec7ff; text-decoration: underline; }
 
-/* Empty state block */
 .empty-state {
   padding: 32px;
   text-align: center;
@@ -172,7 +151,6 @@ button{cursor:pointer}
   place-items: center;
 }
 
-/* Skeletons */
 .skeleton { position:relative; padding: 16px; }
 .s-row { display:flex; align-items:center; gap:12px; margin:10px 0; }
 .s-avatar { width:38px; height:38px; border-radius:999px; background:linear-gradient(90deg,#2b2b2b,#333,#2b2b2b); background-size:200% 100%; animation:sheen 1.25s infinite; }

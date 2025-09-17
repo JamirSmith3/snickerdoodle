@@ -1,4 +1,3 @@
-// api/departments.js
 import express from "express";
 import requireUser from "#middleware/requireUser";
 import requireBody from "#middleware/requireBody";
@@ -15,7 +14,6 @@ export default router;
 
 router.use(requireUser);
 
-// GET /departments
 router.get("/", async (req, res, next) => {
   try {
     const rows = await listDepartments();
@@ -23,7 +21,6 @@ router.get("/", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// POST /departments
 router.post("/", requireBody(["name"]), async (req, res, next) => {
   try {
     const dept = await createDepartment(req.body);
@@ -31,7 +28,6 @@ router.post("/", requireBody(["name"]), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// GET /departments/:id
 router.get("/:id", async (req, res, next) => {
   try {
     const dept = await getDepartmentById(req.params.id);
@@ -40,7 +36,6 @@ router.get("/:id", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// PATCH /departments/:id
 router.patch("/:id", async (req, res, next) => {
   try {
     const dept = await updateDepartment(req.params.id, req.body);
@@ -48,7 +43,6 @@ router.patch("/:id", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// DELETE /departments/:id
 router.delete("/:id", async (req, res, next) => {
   try {
     await deleteDepartment(req.params.id);

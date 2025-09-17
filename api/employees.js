@@ -1,10 +1,9 @@
-// api/employees.js
 import express from "express";
 import requireUser from "#middleware/requireUser";
 import requireBody from "#middleware/requireBody";
 import handlePostgresErrors from "#middleware/handlePostgresErrors";
 import validateEmployee from "#middleware/validateEmployee";
-import db from "#db/client"; // ⬅️ add this
+import db from "#db/client";
 import {
   listEmployees,
   getEmployee,
@@ -17,13 +16,11 @@ const router = express.Router();
 
 router.use(requireUser);
 
-// --- helpers ---
 const EMP_TYPES = new Set(["FT","PT","CONTRACT"]);
 const STATUSES  = new Set(["ACTIVE","INACTIVE"]);
 
 function isValidISODate(s) {
   if (typeof s !== "string") return false;
-  // Accept YYYY-MM-DD
   return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
 }
 
@@ -44,7 +41,6 @@ async function validatePatchFields(body) {
     if (Number.isNaN(n)) errors.push("salary must be a number");
   }
 
-  // Optional FK existence checks (friendlier than raw PG errors)
   if ("department_id" in body && body.department_id != null) {
     const { rows } = await db.query(`SELECT 1 FROM departments WHERE id = $1`, [body.department_id]);
     if (rows.length === 0) errors.push(`department_id ${body.department_id} does not exist`);
@@ -57,7 +53,6 @@ async function validatePatchFields(body) {
   return errors;
 }
 
-// --- routes ---
 router.get("/", async (req, res, next) => {
   try {
     const { limit, offset, q, department_id, status } = req.query;
@@ -85,10 +80,9 @@ router.get("/:id", async (req, res, next) => {
 router.post(
   "/",
   requireBody(["first_name","last_name","email","role_title"]),
-   validateEmployee(),          // <── FULL validation
+   validateEmployee(), 
   async (req, res, next) => {
     try {
-      // Reuse some basic create-time checks
       if (req.body.employment_type && !EMP_TYPES.has(req.body.employment_type)) {
         return res.status(400).json({ error: "employment_type must be FT | PT | CONTRACT" });
       }
@@ -123,10 +117,9 @@ router.patch("/:id", async (req, res, next) => {
   }
 });
 
-// PATCH /employees/:id
 router.patch(
   "/:id",
-  validateEmployee({ allowPartial: true }), // <── PARTIAL validation
+  validateEmployee({ allowPartial: true }), 
   async (req, res, next) => {
     try {
       const row = await updateEmployee(Number(req.params.id), req.body);

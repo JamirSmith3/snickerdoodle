@@ -5,8 +5,8 @@ const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
 const CITIES = ["Chicago", "Austin", "Seattle", "New York", "Denver", "San Jose", "Remote"];
-const EMPLOYMENT_TYPES = ["FT", "PT", "CONTRACT"];        // must match enum employment_type
-const STATUSES = ["ACTIVE", "INACTIVE"];                  // must match enum employee_status
+const EMPLOYMENT_TYPES = ["FT", "PT", "CONTRACT"]; 
+const STATUSES = ["ACTIVE", "INACTIVE"]; 
 
 const DEPARTMENTS = [
   { name: "Engineering", description: "Software and platform" },

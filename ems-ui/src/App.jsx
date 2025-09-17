@@ -1,4 +1,3 @@
-// ems-ui/src/App.jsx
 import { Routes, Route, Navigate, NavLink, Outlet } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 

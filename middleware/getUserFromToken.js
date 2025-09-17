@@ -1,4 +1,3 @@
-// getUserFromToken.js
 import { getUserById } from "#db/queries/users";
 import { verifyToken } from "#utils/jwt";
 

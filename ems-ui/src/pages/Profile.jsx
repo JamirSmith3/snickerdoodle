@@ -1,7 +1,7 @@
 import { useAuth } from "../auth";
 
 export default function Profile() {
-  const { user } = useAuth(); // whatever your AuthProvider exposes
+  const { user } = useAuth();
   const username = user?.username || localStorage.getItem("user") || "User";
 
   return (

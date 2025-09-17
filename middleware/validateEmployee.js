@@ -1,7 +1,3 @@
-// middleware/validateEmployee.js
-// Lightweight validation with no external deps.
-// Usage: validateEmployee({ allowPartial: true }) for PATCH
-
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STATUSES = new Set(["ACTIVE", "INACTIVE"]);
 const TYPES = new Set(["FT", "PT", "CONTRACT"]);
@@ -43,7 +39,6 @@ export default function validateEmployee({ allowPartial = false } = {}) {
     if (Object.keys(errors).length) {
       return res.status(400).json({ error: "Invalid input", fields: errors });
     }
-    // normalize types
     if (!isEmpty(b.department_id)) req.body.department_id = Number(b.department_id);
     if (!isEmpty(b.manager_id)) req.body.manager_id = Number(b.manager_id);
     if (!isEmpty(b.salary)) req.body.salary = Number(b.salary);

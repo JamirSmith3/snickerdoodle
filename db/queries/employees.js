@@ -1,10 +1,5 @@
-// db/queries/employees.js
 import db from "../client.js";
 
-/**
- * LIST with filters + count
- * Adds department_name and manager_name.
- */
 export async function listEmployees({
   limit = 20,
   offset = 0,
@@ -61,10 +56,6 @@ export async function listEmployees({
   return { rows, count };
 }
 
-/**
- * GET one by id
- * Adds department_name and manager_name.
- */
 export async function getEmployee(id) {
   const { rows } = await db.query(
     `SELECT
@@ -80,7 +71,6 @@ export async function getEmployee(id) {
   return rows[0] || null;
 }
 
-/** CREATE */
 export async function createEmployee(payload) {
   const cols = [
     "first_name","last_name","email","role_title","department_id",
@@ -98,7 +88,6 @@ export async function createEmployee(payload) {
   return rows[0];
 }
 
-/** UPDATE (partial) */
 export async function updateEmployee(id, patch) {
   const keys = Object.keys(patch);
   if (keys.length === 0) {
@@ -116,7 +105,6 @@ export async function updateEmployee(id, patch) {
   return rows[0] || null;
 }
 
-/** DELETE */
 export async function deleteEmployee(id) {
   await db.query(`DELETE FROM employees WHERE id=$1`, [id]);
 }
