@@ -14,6 +14,7 @@ import departmentsRouter from "./api/departments.js";
 const app = express();
 export default app;
 
+/* ----------------------------- CORS (dev-friendly) ----------------------------- */
 const stripQuotes = (s) => s.replace(/^['"]|['"]$/g, "");
 const raw = (process.env.CORS_ORIGIN ?? "").trim();
 const cfg = stripQuotes(raw);
@@ -25,7 +26,6 @@ const isLocalhost = (o) =>
 
 const origin = (reqOrigin, cb) => {
   if (!reqOrigin) return cb(null, true);
-
   if (!cfg && isLocalhost(reqOrigin)) return cb(null, true);
 
   const lc = cfg.toLowerCase();
@@ -62,37 +62,40 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Attach req.user when Authorization header is present
 app.use(getUserFromToken);
 
+// Healthcheck
 app.get("/", (req, res) => res.send("OK"));
 
-app.use("/users", usersRouter);  
-app.use("/employees", employeesRouter); 
-app.use("/departments", departmentsRouter); 
+/* --------------------------------- API routes -------------------------------- */
+app.use("/users", usersRouter);
+app.use("/employees", employeesRouter);
+app.use("/departments", departmentsRouter);
 
+/* -------------------------- DB / PG error normalizer ------------------------- */
 app.use(handlePostgresErrors);
 
-
-// after routes but before 404 handlers
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+/* -------------------- Serve React build (one-service deploy) ------------------ */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const clientDir = path.join(__dirname, "ems-ui", "dist");
 app.use(express.static(clientDir));
+
+// Only catch non-API GETs and send index.html
 app.get(/^(?!\/(users|employees|departments)\b).*/, (req, res, next) => {
-  res.sendFile(path.join(clientDir, "index.html"), (err) => { if (err) next(); });
+  res.sendFile(path.join(clientDir, "index.html"), (err) => {
+    if (err) next(); // fall through if dist is missing
+  });
 });
 
-
+/* ------------------------------ Final handlers ------------------------------ */
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
-
 app.use((err, req, res, next) => {
   console.error(err);
   const status = err.status || 500;
