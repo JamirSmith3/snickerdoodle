@@ -78,16 +78,16 @@ app.use("/departments", departmentsRouter);
 app.use(handlePostgresErrors);
 
 
+// after routes but before 404 handlers
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 const clientDir = path.join(__dirname, "ems-ui", "dist");
-
 app.use(express.static(clientDir));
-
 app.get(/^(?!\/(users|employees|departments)\b).*/, (req, res, next) => {
-  res.sendFile(path.join(clientDir, "index.html"), (err) => {
-    if (err) next(); // fall through if dist missing
-  });
+  res.sendFile(path.join(clientDir, "index.html"), (err) => { if (err) next(); });
 });
 
 
