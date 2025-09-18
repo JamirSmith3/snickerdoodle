@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import getUserFromToken from "./middleware/getUserFromToken.js";
 import handlePostgresErrors from "./middleware/handlePostgresErrors.js";
@@ -23,9 +25,12 @@ const isLocalhost = (o) =>
 
 const origin = (reqOrigin, cb) => {
   if (!reqOrigin) return cb(null, true);
+
   if (!cfg && isLocalhost(reqOrigin)) return cb(null, true);
+
   const lc = cfg.toLowerCase();
   if (lc === "*" || lc === "any") return cb(null, true);
+
   if (cfg.startsWith("/") && cfg.endsWith("/")) {
     try {
       const body = cfg.slice(1, -1);
@@ -38,11 +43,13 @@ const origin = (reqOrigin, cb) => {
       return cb(new Error("Invalid CORS_ORIGIN regex"));
     }
   }
+
   if (cfg) {
-    const list = cfg.split(",").map(s => stripQuotes(s.trim())).filter(Boolean);
+    const list = cfg.split(",").map((s) => stripQuotes(s.trim())).filter(Boolean);
     if (list.includes(reqOrigin)) return cb(null, true);
     return cb(new Error("Not allowed by CORS"));
   }
+
   return cb(new Error("Not allowed by CORS"));
 };
 
@@ -56,7 +63,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -65,13 +71,28 @@ app.use(getUserFromToken);
 
 app.get("/", (req, res) => res.send("OK"));
 
-app.use("/users", usersRouter);
-app.use("/employees", employeesRouter);
-app.use("/departments", departmentsRouter);
+app.use("/users", usersRouter);  
+app.use("/employees", employeesRouter); 
+app.use("/departments", departmentsRouter); 
 
 app.use(handlePostgresErrors);
 
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDir = path.join(__dirname, "ems-ui", "dist");
+
+app.use(express.static(clientDir));
+
+app.get(/^(?!\/(users|employees|departments)\b).*/, (req, res, next) => {
+  res.sendFile(path.join(clientDir, "index.html"), (err) => {
+    if (err) next(); // fall through if dist missing
+  });
+});
+
+
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
+
 app.use((err, req, res, next) => {
   console.error(err);
   const status = err.status || 500;
