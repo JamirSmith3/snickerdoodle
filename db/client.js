@@ -1,16 +1,10 @@
-// db/client.js
 import pg from "pg";
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  console.error("Missing DATABASE_URL (Render → Environment)");
-  process.exit(1);
+const options = { connectionString: process.env.DATABASE_URL };
+
+if (process.env.NODE_ENV === "production") {
+  options.ssl = { rejectUnauthorized: false };
 }
 
-const db = new pg.Client({
-  connectionString,
-  // Force SSL, never verify CA (self-signed friendly)
-  ssl: { require: true, rejectUnauthorized: false },
-});
-
+const db = new pg.Client(options);
 export default db;
