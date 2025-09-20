@@ -1,6 +1,6 @@
 import express from "express";
-import requireUser from "#middleware/requireUser";
-import requireBody from "#middleware/requireBody";
+import requireUser from "../middleware/requireUser.js";
+import requireBody from "../middleware/requireBody.js";
 import handlePostgresErrors from "#middleware/handlePostgresErrors";
 import validateEmployee from "#middleware/validateEmployee";
 import db from "#db/client";
@@ -10,7 +10,7 @@ import {
   createEmployee,
   updateEmployee,
   deleteEmployee,
-} from "#db/queries/employees";
+} from "../db/queries/employees.js";
 
 const router = express.Router();
 

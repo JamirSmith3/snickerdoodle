@@ -1,5 +1,5 @@
 import express from "express";
-import requireUser from "#middleware/requireUser";
+import requireUser from "../middleware/requireUser.js";
 import requireBody from "#middleware/requireBody";
 import {
   listDepartments,
@@ -7,7 +7,7 @@ import {
   createDepartment,
   updateDepartment,
   deleteDepartment,
-} from "#db/queries/departments";
+} from "../db/queries/departments.js";
 
 const router = express.Router();
 export default router;

@@ -4,7 +4,6 @@ import morgan from "morgan";
 
 import getUserFromToken from "./middleware/getUserFromToken.js";
 import handlePostgresErrors from "./middleware/handlePostgresErrors.js";
-
 import usersRouter from "./api/users.js";
 import employeesRouter from "./api/employees.js";
 import departmentsRouter from "./api/departments.js";
