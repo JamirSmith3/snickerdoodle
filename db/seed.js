@@ -1,5 +1,5 @@
-import db from "../db/client.js";
-import { createUser } from "../db/queries/users.js";
+import db from "./client.js";
+import { createUser } from "./queries/users.js";
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
