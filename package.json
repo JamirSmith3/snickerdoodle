@@ -2,15 +2,19 @@
   "name": "foobar",
   "type": "module",
   "imports": {
-    "#*": "./*.js"
+    "#*": "./*.js",
+    "#db/*": "./db/*",
+    "#api/*": "./api/*",
+    "#middleware/*": "./middleware/*"
   },
   "scripts": {
+    "db:migrate": "psql \"$DATABASE_URL\" -f db/schema.sql",
+    "db:seed": "node db/seed.js",
+    "db:reset": "npm run db:migrate && npm run db:seed",
     "start": "node server.js",
     "dev": "node --watch --env-file=.env server.js",
     "test": "vitest",
-    "db:schema": "psql -d foobar -f db/schema.sql",
-    "db:seed": "node --env-file=.env db/seed.js",
-    "db:reset": "npm run db:schema && npm run db:seed"
+    "db:schema": "psql -d foobar -f db/schema.sql"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
