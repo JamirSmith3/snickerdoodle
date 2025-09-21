@@ -1,18 +1,11 @@
-import { verifyToken } from "../utils/jwt.js";
-import { getUserById } from "../db/queries/users.js";
+import jwt from "jsonwebtoken";
 
-export default async function getUserFromToken(req, res, next) {
-  const authorization = req.get("authorization");
-  if (!authorization || !authorization.startsWith("Bearer ")) return next();
+const SECRET = process.env.JWT_SECRET;
 
-  const token = authorization.split(" ")[1];
-  try {
-    const { id } = verifyToken(token);
-    const user = await getUserById(id);
-    req.user = user;
-    next();
-  } catch (e) {
-    console.error(e);
-    res.status(401).json({ error: "Invalid token." });
-  }
+export function createToken(payload) {
+  return jwt.sign(payload, SECRET, { expiresIn: "7d" });
+}
+
+export function verifyToken(token) {
+  return jwt.verify(token, SECRET);
 }

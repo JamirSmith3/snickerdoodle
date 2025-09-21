@@ -1,4 +1,4 @@
-import { verify } from "../utils/jwt.js";
+import { verifyToken } from "../utils/jwt.js";
 import { getUserById } from "../db/queries/users.js";
 
 export default async function getUserFromToken(req, res, next) {
@@ -7,7 +7,7 @@ export default async function getUserFromToken(req, res, next) {
 
   const token = authorization.split(" ")[1];
   try {
-    const { id } = verify(token);
+    const { id } = verifyToken(token);
     const user = await getUserById(id);
     req.user = user;
     next();
