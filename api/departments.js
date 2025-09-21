@@ -1,6 +1,7 @@
 import express from "express";
 import requireUser from "../middleware/requireUser.js";
-import requireBody from "#middleware/requireBody";
+import requireBody from "../middleware/requireBody.js";        
+import handlePostgresErrors from "../middleware/handlePostgresErrors.js"; 
 import {
   listDepartments,
   getDepartmentById,
