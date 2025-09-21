@@ -1,7 +1,7 @@
 import express from "express";
 import requireUser from "../middleware/requireUser.js";
 import requireBody from "../middleware/requireBody.js";
-import handlePostgresErrors from "../middleware/handlePostgresErrors";
+import handlePostgresErrors from "../middleware/handlePostgresErrors.js";
 import validateEmployee from "../middleware/validateEmployee";
 import db from "../db/client";
 import {
