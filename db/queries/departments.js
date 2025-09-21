@@ -1,4 +1,4 @@
-import db from "#db/client";
+import db from "../client.js";
 
 export async function createDepartment({ name, description, manager_employee_id }) {
   const sql = `
