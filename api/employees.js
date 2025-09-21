@@ -2,8 +2,8 @@ import express from "express";
 import requireUser from "../middleware/requireUser.js";
 import requireBody from "../middleware/requireBody.js";
 import handlePostgresErrors from "../middleware/handlePostgresErrors.js";
-import validateEmployee from "../middleware/validateEmployee";
-import db from "../db/client";
+import validateEmployee from "../middleware/validateEmployee.js";
+import db from "../db/client.js";    
 import {
   listEmployees,
   getEmployee,
@@ -119,12 +119,18 @@ router.patch("/:id", async (req, res, next) => {
 
 router.patch(
   "/:id",
-  validateEmployee({ allowPartial: true }), 
+  validateEmployee({ allowPartial: true }),
   async (req, res, next) => {
     try {
+      const errors = await validatePatchFields(req.body || {});
+      if (errors.length) return res.status(400).json({ error: errors[0], errors });
+
       const row = await updateEmployee(Number(req.params.id), req.body);
+      if (!row) return res.status(404).send("Employee not found.");
       res.json(row);
-    } catch (e) { next(e); }
+    } catch (e) {
+      handlePostgresErrors(e, req, res, next);
+    }
   }
 );
 
